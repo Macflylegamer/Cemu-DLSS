@@ -149,7 +149,8 @@ jobs:
       run: git clone https://github.com/NVIDIA-RTX/Streamline external/streamline
 
     - name: Patch Streamline CMakeLists.txt
-      run: sed -i 's/copy_if_different \${STREAMLINE_JSONS}/copy_directory_if_different \${STREAMLINE_PLUGIN_JSON_DIR}/g' external/streamline/CMakeLists.txt
+      shell: pwsh
+      run: (Get-Content -Raw external/streamline/CMakeLists.txt).replace('copy_if_different ${STREAMLINE_JSONS}', 'copy_directory_if_different ${STREAMLINE_PLUGIN_JSON_DIR}') | Set-Content -Path external/streamline/CMakeLists.txt
         
     - name: 'Setup NuGet Credentials for vcpkg'
       shell: 'bash'
