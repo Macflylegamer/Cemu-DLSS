@@ -12,6 +12,7 @@ on:
     - "*.md"
     branches:
     - main
+    - dlss-integration
 jobs:
   build:
     uses: ./.github/workflows/build.yml
