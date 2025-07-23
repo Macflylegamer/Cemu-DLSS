@@ -50,6 +50,9 @@ jobs:
       run: |
         bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
 
+    - name: Clone Streamline SDK
+      run: git clone https://github.com/NVIDIA-RTX/Streamline external/streamline
+
     - name: 'Setup NuGet Credentials for vcpkg'
       shell: 'bash'
       run: |
@@ -138,6 +141,9 @@ jobs:
     - name: "Bootstrap vcpkg"
       run: |
         ./dependencies/vcpkg/bootstrap-vcpkg.bat
+
+    - name: Clone Streamline SDK
+      run: git clone https://github.com/NVIDIA-RTX/Streamline external/streamline
         
     - name: 'Setup NuGet Credentials for vcpkg'
       shell: 'bash'
@@ -218,6 +224,9 @@ jobs:
     - name: "Bootstrap vcpkg"
       run: |
         bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
+
+    - name: Clone Streamline SDK
+      run: git clone https://github.com/NVIDIA-RTX/Streamline external/streamline
         
     - name: 'Setup NuGet Credentials for vcpkg'
       shell: 'bash'
