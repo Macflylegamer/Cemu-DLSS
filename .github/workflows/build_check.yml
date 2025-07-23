@@ -1,18 +1,17 @@
 name: Build check
-on: 
+on:
   pull_request:
     paths-ignore:
-      - "*.md"
+    - "*.md"
     types:
-      - opened
-      - synchronize
-      - reopened
+    - opened
+    - synchronize
+    - reopened
   push:
     paths-ignore:
-      - "*.md"
+    - "*.md"
     branches:
-      - main
-
+    - main
 jobs:
   build:
     uses: ./.github/workflows/build.yml
