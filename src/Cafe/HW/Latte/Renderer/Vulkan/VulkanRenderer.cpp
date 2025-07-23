@@ -645,14 +645,7 @@ VulkanRenderer::VulkanRenderer()
 	// start compilation threads
 	RendererShaderVk::Init();
 
-	sl::Preferences prefs;
-	prefs.showConsole = true;
-	prefs.logLevel = sl::LogLevel::eDefault;
-	prefs.pathsToPlugins.push_back(L".");
-	prefs.numPathsToPlugins = 1;
-	prefs.applicationId = 231134; // CEMU
-	prefs.engineType = sl::EngineType::eCustom;
-	prefs.engineVersion = "2.0";
+	sl::Preferences prefs = {};
 	const sl::Feature features[] = { sl::kFeatureDLSS };
 	prefs.featuresToLoad = features;
 	prefs.numFeaturesToLoad = 1;
@@ -2915,42 +2908,40 @@ void VulkanBenchmarkPrintResults();
 void VulkanRenderer::SwapBuffers(bool mainWindow, bool vsync)
 {
     auto& config = GetConfig();
-    if (!config.dlss_enabled)
+    if (config.dlss_enabled)
     {
-        // DLSS is disabled, just present the frame
-        return;
+        auto& chainInfo = GetChainInfo(mainWindow);
+        if (chainInfo.IsValid())
+        {
+            sl::FrameToken* token = nullptr;
+            slGetNewFrameToken(&token);
+
+            sl::DLSSConstants dlssConsts = {};
+            if (config.dlss_mode.GetValue() == "Performance")
+                dlssConsts.mode = sl::DLSSMode::eMaxPerformance;
+            else if (config.dlss_mode.GetValue() == "Balanced")
+                dlssConsts.mode = sl::DLSSMode::eBalanced;
+            else if (config.dlss_mode.GetValue() == "Quality")
+                dlssConsts.mode = sl::DLSSMode::eMaxQuality;
+
+            sl::Extent renderExtent = { 0, 0, 1280, 720 };
+            sl::Extent displayExtent = { 0, 0, (uint32_t)chainInfo.getExtent().width, (uint32_t)chainInfo.getExtent().height };
+
+            slSetTag(token, sl::kTagIDDLSSConstants, &dlssConsts, sizeof(dlssConsts));
+            slSetTag(token, sl::kTagIDInputWidth, &renderExtent.width, sizeof(renderExtent.width));
+            slSetTag(token, sl::kTagIDInputHeight, &renderExtent.height, sizeof(renderExtent.height));
+            slSetTag(token, sl::kTagIDOutputWidth, &displayExtent.width, sizeof(displayExtent.width));
+            slSetTag(token, sl::kTagIDOutputHeight, &displayExtent.height, sizeof(displayExtent.height));
+
+            sl::Resource colorIn = { sl::ResourceType::eTex2d, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], nullptr, nullptr };
+            sl::Resource colorOut = { sl::ResourceType::eTex2d, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], nullptr, nullptr };
+
+            slSetTag(token, sl::kTagIDColorBuffer, &colorIn, sizeof(colorIn));
+            slSetTag(token, sl::kTagIDOutputBuffer, &colorOut, sizeof(colorOut));
+
+            slEvaluateFeature(sl::kFeatureDLSS, token, 0, nullptr);
+        }
     }
-
-    auto& chainInfo = GetChainInfo(mainWindow);
-
-    if (!chainInfo.IsValid())
-        return;
-
-    sl::FrameToken token;
-    slGetNewFrameToken(token);
-
-    // Set DLSS options
-    sl::DLSSOptions dlssOptions = {};
-    if (config.dlss_mode.GetValue() == "Performance")
-        dlssOptions.mode = sl::DLSSMode::eMaxPerformance;
-    else if (config.dlss_mode.GetValue() == "Balanced")
-        dlssOptions.mode = sl::DLSSMode::eBalanced;
-    else if (config.dlss_mode.GetValue() == "Quality")
-        dlssOptions.mode = sl::DLSSMode::eMaxQuality;
-    dlssOptions.outputWidth = chainInfo.getExtent().width;
-    dlssOptions.outputHeight = chainInfo.getExtent().height;
-
-    sl::ViewportHandle viewport = {0};
-    slDLSSSetOptions(viewport, dlssOptions);
-
-    // Set Vulkan resources
-    sl::Resource colorIn = { sl::ResourceType::eTex2d, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], nullptr, nullptr };
-    sl::Resource colorOut = { sl::ResourceType::eTex2d, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], nullptr, nullptr };
-
-    slSetTag(sl::kFeatureDLSS, token, sl::kBufferTypeColor, &colorIn);
-    slSetTag(sl::kFeatureDLSS, token, sl::kBufferTypeOutput, &colorOut);
-
-    slEvaluateFeature(sl::kFeatureDLSS, token, nullptr, 0);
 
 {
 	SubmitCommandBuffer();
