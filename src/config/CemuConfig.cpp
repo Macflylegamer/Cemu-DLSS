@@ -136,6 +136,11 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	async_compile = graphic.get("AsyncCompile", async_compile);
 	vk_accurate_barriers = graphic.get("vkAccurateBarriers", true); // this used to be "VulkanAccurateBarriers" but because we changed the default to true in 1.27.1 the option name had to be changed
 
+	// DLSS
+	dlss_enabled = graphic.get("DLSS_Enabled", dlss_enabled.GetInitValue());
+	dlss_mode = graphic.get("DLSS_Mode", dlss_mode.GetInitValue());
+	dlss_frame_generation = graphic.get("DLSS_FrameGeneration", dlss_frame_generation.GetInitValue());
+
 	auto overlay_node = graphic.get("Overlay");
 	if(overlay_node.valid())
 	{
@@ -353,6 +358,11 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	graphic.set("FullscreenScaling", fullscreen_scaling);
 	graphic.set("AsyncCompile", async_compile.GetValue());
 	graphic.set("vkAccurateBarriers", vk_accurate_barriers);
+
+	// DLSS
+	graphic.set("DLSS_Enabled", dlss_enabled.GetValue());
+	graphic.set("DLSS_Mode", dlss_mode.GetValue().c_str());
+	graphic.set("DLSS_FrameGeneration", dlss_frame_generation.GetValue());
 
 	auto overlay_node = graphic.set("Overlay");
 	overlay_node.set("Position", overlay.position);

@@ -1,4 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#include "sl.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
@@ -643,10 +644,18 @@ VulkanRenderer::VulkanRenderer()
 
 	// start compilation threads
 	RendererShaderVk::Init();
+
+	sl::Preferences preferences = {};
+	preferences.applicationId = 231134; // CEMU
+	preferences.featureFlags = sl::kFeatureDLSS;
+	sl::Result result = slInit(preferences);
+	if (result != sl::Result::eOk)
+		cemuLog_log(LogType::Force, "Streamline DLSS init failed");
 }
 
 VulkanRenderer::~VulkanRenderer()
 {
+	slShutdown();
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	WaitCommandBufferFinished(GetCurrentCommandBufferId());
@@ -2895,7 +2904,49 @@ void VulkanRenderer::NotifyLatteCommandProcessorIdle()
 
 void VulkanBenchmarkPrintResults();
 
-void VulkanRenderer::SwapBuffers(bool swapTV, bool swapDRC)
+void VulkanRenderer::SwapBuffers(bool mainWindow, bool vsync)
+{
+    auto& config = GetConfig();
+    if (!config.dlss_enabled)
+    {
+        // DLSS is disabled, just present the frame
+        return;
+    }
+
+    auto& chainInfo = GetChainInfo(mainWindow);
+
+    if (!chainInfo.IsValid())
+        return;
+
+    sl::FrameToken* token;
+    slGetNewFrameToken(&token);
+
+    // Set DLSS constants
+    sl::DLSSConstants dlssConsts = {};
+    if (config.dlss_mode.GetValue() == "Performance")
+        dlssConsts.mode = sl::DLSSMode::ePerformance;
+    else if (config.dlss_mode.GetValue() == "Balanced")
+        dlssConsts.mode = sl::DLSSMode::eBalanced;
+    else if (config.dlss_mode.GetValue() == "Quality")
+        dlssConsts.mode = sl::DLSSMode::eQuality;
+    dlssConsts.frameGenerationMode = config.dlss_frame_generation ? sl::FrameGenerationMode::eOn : sl::FrameGenerationMode::eOff;
+    slSetFeatureConstants(sl::kFeatureDLSS, dlssConsts);
+
+    // Set render and display dimensions
+    sl::Extent renderExtent = { 0, 0, 1280, 720 };
+    sl::Extent displayExtent = { 0, 0, (uint32_t)chainInfo.getExtent().width, (uint32_t)chainInfo.getExtent().height };
+    slSetTag(sl::kFeatureDLSS, *token, sl::kBufferTypeScalingInputDimensions, &renderExtent);
+    slSetTag(sl::kFeatureDLSS, *token, sl::kBufferTypeScalingOutputDimensions, &displayExtent);
+
+    // Set Vulkan resources
+    slSetTag(sl::kFeatureDLSS, *token, sl::kBufferTypeColor, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex]);
+    slSetTag(sl::kFeatureDLSS, *token, sl::kBufferTypeDepth, VK_NULL_HANDLE); // No depth buffer for now
+    slSetTag(sl::kFeatureDLSS, *token, sl::kBufferTypeMotionVectors, VK_NULL_HANDLE); // No motion vectors for now
+    slSetTag(sl::kFeatureDLSS, *token, sl::kBufferTypeOutput, chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex]);
+
+    // Evaluate DLSS
+    slEvaluateFeature(sl::kFeatureDLSS, *token, nullptr, 0);
+
 {
 	SubmitCommandBuffer();
 

@@ -130,6 +130,7 @@ set_target_properties(CemuBin PROPERTIES
 )
 
 target_link_libraries(CemuBin PRIVATE
+	sl.dlss
 	CemuAudio
 	CemuCafe
 	CemuCommon

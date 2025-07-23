@@ -106,14 +106,15 @@ void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 directio
 			if(config.overlay.vram_usage && g_state.vramUsage != -1 && g_state.vramTotal != -1)
 				ImGui::Text("VRAM: %dMB / %dMB", g_state.vramUsage, g_state.vramTotal);
 
-			if (config.overlay.debug)
-			{
-				// general debug info
-				ImGui::Text("--- Debug info ---");
-				ImGui::Text("IndexUploadPerFrame: %dKB", (performanceMonitor.stats.indexDataUploadPerFrame+1023)/1024);
-				// backend specific info
-				g_renderer->AppendOverlayDebugInfo();
-			}
+			    if (config.overlay.debug)
+    {
+        ImGui::Text("DLSS: %s [%s] | FG: %s",
+            config.dlss_enabled ? "ON" : "OFF",
+            config.dlss_mode.GetValue().c_str(),
+            config.dlss_frame_generation ? "ON" : "OFF");
+    }
+
+    g_renderer->AppendOverlayDebugInfo();
 
 			position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
 		}

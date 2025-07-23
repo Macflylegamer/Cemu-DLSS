@@ -234,4 +234,6 @@ if (NOT ZArchive_FOUND)
 	add_subdirectory("dependencies/ZArchive" EXCLUDE_FROM_ALL)
 endif()
 
+add_subdirectory(external/streamline)
+include_directories(external/streamline/include external/streamline/src)
 add_subdirectory(src)

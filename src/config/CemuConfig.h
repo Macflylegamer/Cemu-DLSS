@@ -391,6 +391,11 @@ struct CemuConfig
 
 	ConfigValue<bool> vk_accurate_barriers{ true };
 
+	// DLSS
+	ConfigValue<bool> dlss_enabled{ false };
+	ConfigValue<std::string> dlss_mode{ "Performance" };
+	ConfigValue<bool> dlss_frame_generation{ false };
+
 	struct
 	{
 		ScreenPosition position = ScreenPosition::kDisabled;
